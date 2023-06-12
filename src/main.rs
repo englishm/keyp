@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     error,
     io::Read,
     net::{TcpListener, TcpStream},
@@ -6,7 +7,10 @@ use std::{
 
 type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
 
-fn handle_client(stream: TcpStream) -> Result<()> {
+fn handle_client(
+    stream: TcpStream,
+    kv_store: HashMap<String, String>,
+) -> Result<HashMap<String, String>> {
     // TODO split this all apart to make parsing testable
 
     // allocate 1 MB buffer to hold request data
@@ -77,24 +81,27 @@ fn handle_client(stream: TcpStream) -> Result<()> {
     //                  / asterisk-form
     // TODO: properly handle anything other than origin form
 
-    // TODO figure out where to actually set up a hashmap we can share
-    // such that Rust is happy about how we manage ownership
-
     // When your server receives a request on `http://localhost:4000/set?somekey=somevalue`
     // it should store the passed key and value in memory.
     if request_target.starts_with("/set?") {
+        println!("/set?")
+        // TODO parse parameters of request URI
         // TODO store key and value
+        //kv_store.insert(k, v)
         // TODO return 200 OK
     }
     // When it receives a request on `http://localhost:4000/get?key=somekey`
     // it should return the value stored at `somekey`.
     else if request_target.starts_with("/get?") {
+        println!("/get?")
+        // v = kv_store.get(k)
         // TODO return value
     } else {
+        eprintln!("Neither setting nor getting?")
         // TODO return 500
     }
 
-    Ok(())
+    Ok(kv_store)
 }
 
 fn main() -> Result<()> {
@@ -102,11 +109,14 @@ fn main() -> Result<()> {
     // write a program that runs a server that is accessible on `http://localhost:4000/`
     let listener = TcpListener::bind("127.0.0.1:4000")?;
 
-    // Not async or even multi-threaded (yet), but maybe this
-    // is actually a feature for now because we can avoid
-    // data races in our toy database XD
+    // Not async or even multi-threaded (yet), but this
+    // is definitely a feature for now because we can
+    // easily avoid data races in our toy database XD
+    let mut kv_store = HashMap::new();
     for stream in listener.incoming() {
-        handle_client(stream?)?;
+        println!("initial kv: {:?}", kv_store);
+        kv_store = handle_client(stream?, kv_store)?;
+        println!("resulting kv: {:?}", kv_store);
     }
 
     Ok(())
