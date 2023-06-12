@@ -3,13 +3,14 @@ use std::{
     error,
     io::Read,
     net::{TcpListener, TcpStream},
+    time::SystemTime,
 };
 
 type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
 
 fn handle_client(
     stream: TcpStream,
-    kv_store: HashMap<String, String>,
+    mut kv_store: HashMap<String, String>,
 ) -> Result<HashMap<String, String>> {
     // TODO split this all apart to make parsing testable
 
@@ -101,6 +102,11 @@ fn handle_client(
         // TODO return 500
     }
 
+    // Don't really care what this looks like
+    // still avoiding non-std crates
+    let timestamp = format!("{:?}", SystemTime::now());
+    kv_store.insert("last_request_handled".to_string(), timestamp);
+
     Ok(kv_store)
 }
 
@@ -114,6 +120,8 @@ fn main() -> Result<()> {
     // easily avoid data races in our toy database XD
     let mut kv_store = HashMap::new();
     for stream in listener.incoming() {
+        let timestamp = format!("{:?}", SystemTime::now());
+        kv_store.insert("request_time".to_string(), timestamp);
         println!("initial kv: {:?}", kv_store);
         kv_store = handle_client(stream?, kv_store)?;
         println!("resulting kv: {:?}", kv_store);
