@@ -77,6 +77,9 @@ fn handle_client(stream: TcpStream) -> Result<()> {
     //                  / asterisk-form
     // TODO: properly handle anything other than origin form
 
+    // TODO figure out where to actually set up a hashmap we can share
+    // such that Rust is happy about how we manage ownership
+
     // When your server receives a request on `http://localhost:4000/set?somekey=somevalue`
     // it should store the passed key and value in memory.
     if request_target.starts_with("/set?") {
