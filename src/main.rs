@@ -164,8 +164,8 @@ fn handle_client(
 
     // Don't really care what this looks like
     // still avoiding non-std crates
-    let timestamp = format!("{:?}", SystemTime::now());
-    kv_store.insert("last_request_handled".to_string(), timestamp);
+    // let timestamp = format!("{:?}", SystemTime::now());
+    // kv_store.insert("last_request_handled".to_string(), timestamp);
 
     Ok(kv_store)
 }
@@ -180,8 +180,8 @@ fn main() -> Result<()> {
     // easily avoid data races in our toy database XD
     let mut kv_store = HashMap::new();
     for stream in listener.incoming() {
-        let timestamp = format!("{:?}", SystemTime::now());
-        kv_store.insert("request_time".to_string(), timestamp);
+        // let timestamp = format!("{:?}", SystemTime::now());
+        // kv_store.insert("request_time".to_string(), timestamp);
         println!("initial kv: {:?}", kv_store);
         kv_store = handle_client(stream?, kv_store)?;
         println!("resulting kv: {:?}", kv_store);
