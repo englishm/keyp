@@ -3,13 +3,12 @@ use std::{
     error,
     io::{Read, Write},
     net::{TcpListener, TcpStream},
-    time::SystemTime,
 };
 
 type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
 
 fn handle_client(
-    mut stream: TcpStream,
+    stream: TcpStream,
     mut kv_store: HashMap<String, String>,
 ) -> Result<HashMap<String, String>> {
     // TODO split this all apart to make parsing testable
@@ -47,9 +46,9 @@ fn handle_client(
             request_line = value;
         }
         None => {
-            request_line = "";
-            eprintln!("Something went wrong")
-            // TODO: Return 500 error
+            eprintln!("Something went wrong");
+            respond_not_ok(stream, "")?;
+            return Ok(kv_store);
         }
     }
 
@@ -94,9 +93,9 @@ fn handle_client(
                 println!("parameters: {}", parameters)
             }
             _ => {
-                parameters = "";
-                eprintln!("Something went wrong")
-                // TODO return 500
+                eprintln!("Something went wrong");
+                respond_not_ok(stream, "")?;
+                return Ok(kv_store);
             }
         }
         match parameters.split('=').collect::<Vec<_>>()[..] {
@@ -105,17 +104,12 @@ fn handle_client(
                 println!("v: {}", v);
                 println!("Setting {}={}", k, v);
                 kv_store.insert(k.to_string(), v.to_string());
-                // TODO return 200 OK
-                let mut response: Vec<u8> = Vec::new();
-                response.extend("HTTP/1.1 200 OK\n".as_bytes().to_vec());
-                // TODO: think about content types
-                response.extend("\n".as_bytes().to_vec());
-                stream.write_all(response.as_slice())?;
-                stream.flush()?;
+                respond_ok(stream, "")?;
             }
             _ => {
-                eprintln!("Something went wrong")
-                // TODO return 500
+                eprintln!("Something went wrong");
+                respond_not_ok(stream, "")?;
+                return Ok(kv_store);
             }
         }
     }
@@ -130,14 +124,15 @@ fn handle_client(
                 println!("parameters: {}", parameters)
             }
             _ => {
-                parameters = "";
-                eprintln!("Something went wrong")
-                // TODO return 500
+                eprintln!("Something went wrong");
+                respond_not_ok(stream, "")?;
+                return Ok(kv_store);
             }
         }
         if parameters.contains('=') {
-            eprintln!("Something went wrong")
-            // TODO return 500
+            eprintln!("Something went wrong");
+            respond_not_ok(stream, "")?;
+            return Ok(kv_store);
         }
         let k = parameters;
         let mut value = &String::new();
@@ -149,25 +144,35 @@ fn handle_client(
                 eprintln!("No value for key: {}", k);
             }
         }
-        let mut response: Vec<u8> = Vec::new();
-        response.extend("HTTP/1.1 200 OK\n".as_bytes().to_vec());
-        // TODO: think about content types
-        response.extend("\n".as_bytes().to_vec());
-        response.extend(value.as_bytes().to_vec());
-        stream.write_all(response.as_slice())?;
-        stream.flush()?;
-        // TODO return value
+        respond_ok(stream, value)?;
     } else {
-        eprintln!("Neither setting nor getting?")
-        // TODO return 500
+        eprintln!("Neither setting nor getting?");
+        respond_not_ok(stream, "")?;
     }
 
-    // Don't really care what this looks like
-    // still avoiding non-std crates
-    // let timestamp = format!("{:?}", SystemTime::now());
-    // kv_store.insert("last_request_handled".to_string(), timestamp);
-
     Ok(kv_store)
+}
+
+fn respond_ok(mut stream: TcpStream, body: &str) -> Result<()> {
+    let mut response: Vec<u8> = Vec::new();
+    response.extend("HTTP/1.1 200 OK\n".as_bytes().to_vec());
+    // TODO: think about content types
+    response.extend("\n".as_bytes().to_vec());
+    response.extend(body.as_bytes().to_vec());
+    stream.write_all(response.as_slice())?;
+    stream.flush()?;
+    Ok(())
+}
+
+// Assume if anything goes wrong, it's our fault
+fn respond_not_ok(mut stream: TcpStream, body: &str) -> Result<()> {
+    let mut response: Vec<u8> = Vec::new();
+    response.extend("HTTP/1.1 500 Internal Server Error\n".as_bytes().to_vec());
+    response.extend("\n".as_bytes().to_vec());
+    response.extend(body.as_bytes().to_vec());
+    stream.write_all(response.as_slice())?;
+    stream.flush()?;
+    Ok(())
 }
 
 fn main() -> Result<()> {
