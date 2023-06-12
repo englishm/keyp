@@ -1,9 +1,12 @@
 use std::{
+    error,
     io::Read,
     net::{TcpListener, TcpStream},
 };
 
-fn handle_client(mut stream: TcpStream) -> std::io::Result<()> {
+type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
+
+fn handle_client(mut stream: TcpStream) -> Result<()> {
     let mut buf: Vec<u8> = Vec::new();
     println!("handling stream: {:?}", stream);
     stream.read_to_end(&mut buf)?;
@@ -16,7 +19,7 @@ fn handle_client(mut stream: TcpStream) -> std::io::Result<()> {
     Ok(())
 }
 
-fn main() -> std::io::Result<()> {
+fn main() -> Result<()> {
     println!("Hello, world!");
     // write a program that runs a server that is accessible on `http://localhost:4000/`
     let listener = TcpListener::bind("127.0.0.1:4000")?;
