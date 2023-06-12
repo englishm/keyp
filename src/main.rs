@@ -24,6 +24,26 @@ fn handle_client(stream: TcpStream) -> Result<()> {
     // Or would it be OK to pull in a minmal lib here like httpparse?
     // Let's see how far we can get with something hacky
 
+    // Note: regex isn't even in std so this could get interesting..
+    // Good news is we have slice pattern matching...
+    match buf {
+        [b'G', b'E', b'T', b' ', ..] => {
+            println!("GET request (probably)")
+        }
+        [b'P', b'U', b'T', b' ', ..] => {
+            println!("PUT request (probably)")
+        }
+        [b'H', b'E', b'A', b'D', b' ', ..] => {
+            println!("HEAD request (probably)")
+        }
+        [b'P', b'O', b'S', b'T', b' ', ..] => {
+            println!("POST request (probably)")
+        }
+        _ => {
+            todo!("🤷");
+        }
+    }
+
     // When your server receives a request on `http://localhost:4000/set?somekey=somevalue`
     // it should store the passed key and value in memory.
 
