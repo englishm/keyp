@@ -1,12 +1,19 @@
-use std::net::{TcpListener, TcpStream};
+use std::{
+    io::Read,
+    net::{TcpListener, TcpStream},
+};
 
-fn handle_client(stream: TcpStream) {
+fn handle_client(mut stream: TcpStream) -> std::io::Result<()> {
+    let mut buf: Vec<u8> = Vec::new();
     println!("handling stream: {:?}", stream);
+    stream.read_to_end(&mut buf)?;
+    println!("buf: {:?}", buf);
     // When your server receives a request on `http://localhost:4000/set?somekey=somevalue`
     // it should store the passed key and value in memory.
 
     // When it receives a request on `http://localhost:4000/get?key=somekey`
     // it should return the value stored at `somekey`.
+    Ok(())
 }
 
 fn main() -> std::io::Result<()> {
@@ -18,7 +25,7 @@ fn main() -> std::io::Result<()> {
     // is actually a feature for now because we can avoid
     // data races in our toy database XD
     for stream in listener.incoming() {
-        handle_client(stream?);
+        handle_client(stream?)?;
     }
 
     Ok(())
