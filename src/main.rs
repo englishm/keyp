@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     error,
-    io::Read,
+    io::{Read, Write},
     net::{TcpListener, TcpStream},
     time::SystemTime,
 };
@@ -9,7 +9,7 @@ use std::{
 type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
 
 fn handle_client(
-    stream: TcpStream,
+    mut stream: TcpStream,
     mut kv_store: HashMap<String, String>,
 ) -> Result<HashMap<String, String>> {
     // TODO split this all apart to make parsing testable
@@ -19,7 +19,7 @@ fn handle_client(
     println!("handling stream: {:?}", stream);
 
     // read at most 1MB of data into buffer
-    let mut handle = stream.take(1_000_000);
+    let mut handle = stream.try_clone()?.take(1_000_000);
     handle.read(&mut buf)?;
 
     // print request as a UTF-8 string
@@ -85,17 +85,77 @@ fn handle_client(
     // When your server receives a request on `http://localhost:4000/set?somekey=somevalue`
     // it should store the passed key and value in memory.
     if request_target.starts_with("/set?") {
-        println!("/set?")
+        println!("/set?");
         // TODO parse parameters of request URI
-        // TODO store key and value
-        //kv_store.insert(k, v)
-        // TODO return 200 OK
+        let parameters;
+        match request_target.split('?').collect::<Vec<_>>()[..] {
+            [_, params] => {
+                parameters = params;
+                println!("parameters: {}", parameters)
+            }
+            _ => {
+                parameters = "";
+                eprintln!("Something went wrong")
+                // TODO return 500
+            }
+        }
+        match parameters.split('=').collect::<Vec<_>>()[..] {
+            [k, v] => {
+                println!("k: {}", k);
+                println!("v: {}", v);
+                println!("Setting {}={}", k, v);
+                kv_store.insert(k.to_string(), v.to_string());
+                // TODO return 200 OK
+                let mut response: Vec<u8> = Vec::new();
+                response.extend("HTTP/1.1 200 OK\n".as_bytes().to_vec());
+                // TODO: think about content types
+                response.extend("\n".as_bytes().to_vec());
+                stream.write_all(response.as_slice())?;
+                stream.flush()?;
+            }
+            _ => {
+                eprintln!("Something went wrong")
+                // TODO return 500
+            }
+        }
     }
     // When it receives a request on `http://localhost:4000/get?key=somekey`
     // it should return the value stored at `somekey`.
     else if request_target.starts_with("/get?") {
-        println!("/get?")
-        // v = kv_store.get(k)
+        println!("/get?");
+        let parameters;
+        match request_target.split('?').collect::<Vec<_>>()[..] {
+            [_, params] => {
+                parameters = params;
+                println!("parameters: {}", parameters)
+            }
+            _ => {
+                parameters = "";
+                eprintln!("Something went wrong")
+                // TODO return 500
+            }
+        }
+        if parameters.contains('=') {
+            eprintln!("Something went wrong")
+            // TODO return 500
+        }
+        let k = parameters;
+        let mut value = &String::new();
+        match kv_store.get(k) {
+            Some(v) => {
+                value = v;
+            }
+            None => {
+                eprintln!("No value for key: {}", k);
+            }
+        }
+        let mut response: Vec<u8> = Vec::new();
+        response.extend("HTTP/1.1 200 OK\n".as_bytes().to_vec());
+        // TODO: think about content types
+        response.extend("\n".as_bytes().to_vec());
+        response.extend(value.as_bytes().to_vec());
+        stream.write_all(response.as_slice())?;
+        stream.flush()?;
         // TODO return value
     } else {
         eprintln!("Neither setting nor getting?")
