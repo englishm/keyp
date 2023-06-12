@@ -11,6 +11,8 @@ fn handle_client(mut stream: TcpStream) -> Result<()> {
     println!("handling stream: {:?}", stream);
     stream.read_to_end(&mut buf)?;
     println!("buf: {:?}", buf);
+    let s = String::from_utf8(buf)?;
+    println!("s: {}", s);
     // When your server receives a request on `http://localhost:4000/set?somekey=somevalue`
     // it should store the passed key and value in memory.
 
