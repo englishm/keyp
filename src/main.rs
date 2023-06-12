@@ -7,6 +7,8 @@ use std::{
 type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
 
 fn handle_client(stream: TcpStream) -> Result<()> {
+    // TODO split this all apart to make parsing testable
+
     // allocate 1 MB buffer to hold request data
     let mut buf = [0; 1_000_000];
     println!("handling stream: {:?}", stream);
@@ -52,33 +54,43 @@ fn handle_client(stream: TcpStream) -> Result<()> {
     // HTTP/1.1 Request lines:
     // https://www.rfc-editor.org/rfc/rfc9112#section-3
     // request-line   = method SP request-target SP HTTP-version
+    // TODO: reject too long methods and request-target URIs
+    let request_target: &str;
     match request_line.split(' ').collect::<Vec<_>>()[..] {
-        ["GET", request_target, http_version] => {
-            println!("GET request");
+        [method, rt, http_version] => {
+            request_target = rt;
+            println!("{} request", method);
             println!("request-target: {}", request_target);
             println!("HTTP-version: {}", http_version);
         }
-        ["PUT", request_target, http_version] => {
-            println!("PUT request");
-            println!("request-target: {}", request_target);
-            println!("HTTP-version: {}", http_version);
-        }
-        // ["HEAD", request_target, http_version] => {
-        //     println!("HEAD request");
-        //     println!("request-target: {}", request_target);
-        //     println!("HTTP-version: {}", http_version);
-        // }
         _ => {
             eprintln!("Failed to parse request line: {:?}", request_line);
             todo!("🤷");
         }
     }
 
+    // request-target:
+    // https://www.rfc-editor.org/rfc/rfc9112#section-3.2
+    //   request-target = origin-form
+    //                  / absolute-form
+    //                  / authority-form
+    //                  / asterisk-form
+    // TODO: properly handle anything other than origin form
+
     // When your server receives a request on `http://localhost:4000/set?somekey=somevalue`
     // it should store the passed key and value in memory.
-
+    if request_target.starts_with("/set?") {
+        // TODO store key and value
+        // TODO return 200 OK
+    }
     // When it receives a request on `http://localhost:4000/get?key=somekey`
     // it should return the value stored at `somekey`.
+    else if request_target.starts_with("/get?") {
+        // TODO return value
+    } else {
+        // TODO return 500
+    }
+
     Ok(())
 }
 
