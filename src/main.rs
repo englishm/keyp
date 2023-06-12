@@ -6,13 +6,19 @@ use std::{
 
 type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
 
-fn handle_client(mut stream: TcpStream) -> Result<()> {
-    let mut buf: Vec<u8> = Vec::new();
+fn handle_client(stream: TcpStream) -> Result<()> {
+    // allocate 1 MB buffer to hold request data
+    let mut buf = [0; 1_000_000];
     println!("handling stream: {:?}", stream);
-    stream.read_to_end(&mut buf)?;
-    println!("buf: {:?}", buf);
-    let s = String::from_utf8(buf)?;
-    println!("s: {}", s);
+
+    // read at most 1MB of data into buffer
+    let mut handle = stream.take(1_000_000);
+    handle.read(&mut buf)?;
+
+    // print request as a UTF-8 string
+    let s = String::from_utf8(buf.to_vec())?;
+    println!("s: {}", s); // print request
+
     // When your server receives a request on `http://localhost:4000/set?somekey=somevalue`
     // it should store the passed key and value in memory.
 
