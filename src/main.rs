@@ -19,6 +19,11 @@ fn handle_client(stream: TcpStream) -> Result<()> {
     let s = String::from_utf8(buf.to_vec())?;
     println!("s: {}", s); // print request
 
+    // TODO: HTTP Parsing
+    // Can we hack together minimal parsing with nothing but std?
+    // Or would it be OK to pull in a minmal lib here like httpparse?
+    // Let's see how far we can get with something hacky
+
     // When your server receives a request on `http://localhost:4000/set?somekey=somevalue`
     // it should store the passed key and value in memory.
 
