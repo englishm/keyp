@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     error,
+    fs::File,
     io::{Read, Write},
     net::{TcpListener, TcpStream},
 };
@@ -180,10 +181,34 @@ fn main() -> Result<()> {
     // write a program that runs a server that is accessible on `http://localhost:4000/`
     let listener = TcpListener::bind("127.0.0.1:4000")?;
 
+    let mut kv_store = HashMap::new();
+
+    let mut f = File::open("keyp.db")?;
+
+    // first read from the file
+    // format:
+    // <key> <value>
+    //
+
+    let mut db_str = String::new();
+    let _bytes = f.read_to_string(&mut db_str)?;
+
+    for line in db_str.lines() {
+        match line.split(' ').collect::<Vec<&str>>()[..] {
+            [key, value] => {
+                dbg!(key, value);
+                kv_store.insert(key.into(), value.into());
+            }
+            _ => {
+                dbg!(line);
+                panic!()
+            }
+        }
+    }
+
     // Not async or even multi-threaded (yet), but this
     // is definitely a feature for now because we can
     // easily avoid data races in our toy database XD
-    let mut kv_store = HashMap::new();
     for stream in listener.incoming() {
         // let timestamp = format!("{:?}", SystemTime::now());
         // kv_store.insert("request_time".to_string(), timestamp);
